@@ -106,7 +106,7 @@ contract Vesting is Context, AccessControl {
         return _totalAllocation;
     }
 
-    function getTotalClaimedVestingSchedule() public view returns (uint) {
+    function getTotalClaimedAllocation() public view returns (uint) {
         return _totalClaimedAllocation;
     }
 

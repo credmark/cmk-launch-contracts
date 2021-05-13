@@ -7,7 +7,7 @@ const TEST_VESTING_1 = {
     amount: "1000000000000000000000000"
 }
 const TEST_VESTING_2 = {
-    vesting: 30,
+    vesting: 15,
     cliff: 0,
     amount: "10000000000000000000000000"
 }
@@ -71,13 +71,39 @@ contract("Vesting Test", async accounts => {
 
     it("Passes the correct values to the vesting definition", async () =>{
         let vesting = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_1).valueOf();
-        console.log(vesting)
         assert.equal(vesting.account, TEST_ADDRESS_1);
         assert.equal(vesting.allocation, TEST_VESTING_1.amount);
         assert.equal(timestamp_equal(Date.now(), parseInt(vesting.startTimestamp)), true);
         assert.equal(TEST_VESTING_1.vesting, parseInt(vesting.vestingSeconds));
         assert.equal(TEST_VESTING_1.cliff, parseInt(vesting.cliffSeconds));
         assert.equal(vesting.claimedAmount, 0);
+    });
+
+    it("Test Getters", async () => {
+    
+
+        let get_cmk_token_address = await vesting_instance.getCmkTokenAddress.call();
+        let get_total_allocation = await vesting_instance.getTotalAllocation.call();
+        let get_total_claimed_allocation = await vesting_instance.getTotalClaimedAllocation.call();
+
+        let get_unvested_amount = await vesting_instance.getUnvestedAmount.call(TEST_ADDRESS_1);
+        let get_vested_amount = await vesting_instance.getVestedAmount.call(TEST_ADDRESS_1);
+        let get_elapsed_time = await vesting_instance.getElapsedVestingTime.call(TEST_ADDRESS_1);
+        let get_claimed_amount = await vesting_instance.getClaimedAmount.call(TEST_ADDRESS_1);
+        let get_claimable_amount = await vesting_instance.getClaimableAmount.call(TEST_ADDRESS_1);
+        
+        //Since we haven't sent Tx's, just calls, no blocktime has passed
+        assert.equal(BigInt(get_unvested_amount.valueOf()) > 0, true);
+        assert.equal(BigInt(get_vested_amount.valueOf()) == 0, true);
+        assert.equal(BigInt(get_elapsed_time.valueOf()) == 0, true);
+        assert.equal(BigInt(get_claimed_amount.valueOf()) == 0, true);
+        assert.equal(BigInt(get_claimable_amount.valueOf()) == 0, true);
+
+        assert.equal(get_cmk_token_address.valueOf(), cmk_instance.address);
+        assert.equal(BigInt(get_total_allocation.valueOf()), BigInt(TEST_VESTING_1.amount));
+        assert.equal(BigInt(get_total_claimed_allocation.valueOf()), 0);
+
+
     });
 
     it("Can't add the same vesting twice", async () =>{
@@ -94,6 +120,7 @@ contract("Vesting Test", async accounts => {
         }
         assert.equal(addVestingReverted, true)
     });
+
     it("Makes vested CMK Claimable", async () =>{
         await vesting_instance.addVestingSchedule.sendTransaction(
             TEST_ADDRESS_2, 
@@ -107,56 +134,26 @@ contract("Vesting Test", async accounts => {
         let claim = await vesting_instance.claim.sendTransaction(
             {from: TEST_ADDRESS_2}
         );
-        let vesting = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_2).valueOf();
-        console.log(vesting);
-        console.log(claim)
-        await sleep(15000);
-        
+        let vesting_1 = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_2).valueOf();
+
+        await sleep(5000);
         claim = await vesting_instance.claim.sendTransaction(
             {from: TEST_ADDRESS_2}
         );
-        console.log(claim)
-        vesting = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_2).valueOf();
-        console.log(vesting);
-        await sleep(15000);
+        let vesting_2 = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_2).valueOf();
         
+        await sleep(6000);
         await vesting_instance.claim.sendTransaction(
             {from: TEST_ADDRESS_2}
         );
-        vesting = await vesting_instance.getVesting.call(TEST_ADDRESS_2).valueOf();
-        console.log(vesting);
+        let vesting_3 = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_2).valueOf();
+
+        assert.equal(BigInt(vesting_1.claimedAmount) < BigInt(vesting_2.claimedAmount), true);
+        assert.equal(BigInt(vesting_2.claimedAmount) < BigInt(vesting_3.claimedAmount), true);
+        assert.equal(BigInt(vesting_3.allocation), BigInt(vesting_3.claimedAmount));
     });
     
-    it("Vesting getters all work", async () => {
-        await vesting_instance.addVesting.sendTransaction(
-            TEST_ADDRESS_3, 
-            TEST_VESTING_2.amount, 
-            TEST_VESTING_2.vesting_mo, 
-            TEST_VESTING_2.cliff_mo, 
-            {from: DAO_ADDRESS});
-
-        let get_unvested_amount = await vesting_instance.getUnvestedAmount.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_unvested_amount)
-        assert.equal(get_unvested_amount > 0, true);
-        let get_vested_amount = await vesting_instance.getVestedAmount.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_vested_amount)
-        assert.equal(get_vested_amount > 0, true);
-        let get_remaining_time = await vesting_instance.getRemainingTime.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_remaining_time)
-        assert.equal(get_remaining_time > 0, true);
-        let get_elapsed_time = await vesting_instance.getElapsedTime.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_elapsed_time)
-        assert.equal(get_elapsed_time > 0, true);
-        let get_claimed_amount = await vesting_instance.getClaimedAmount.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_claimed_amount)
-        assert.equal(get_claimed_amount > 0, true);
-        let get_total_amount = await vesting_instance.getTotalAmount.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_total_amount)
-        assert.equal(get_total_amount > 0, true);
-        let get_claimable_amount = await vesting_instance.getClaimableAmount.call(TEST_ADDRESS_2).valueOf();
-        console.log(get_claimable_amount)
-        assert.equal(get_claimable_amount > 0, true);
-    });
+    
 
     it("Can Claim all remaining allocation", async () =>{
 
