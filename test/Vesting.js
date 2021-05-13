@@ -152,14 +152,27 @@ contract("Vesting Test", async accounts => {
         assert.equal(BigInt(vesting_2.claimedAmount) < BigInt(vesting_3.claimedAmount), true);
         assert.equal(BigInt(vesting_3.allocation), BigInt(vesting_3.claimedAmount));
     });
-    
-    
-
-    it("Can Claim all remaining allocation", async () =>{
-
-    });
 
     it("Can Cancel Contract", async () =>{
+        await vesting_instance.addVestingSchedule.sendTransaction(
+            TEST_ADDRESS_3, 
+            TEST_VESTING_2.amount, 
+            TEST_VESTING_2.vesting, 
+            TEST_VESTING_2.cliff, 
+            {from: DAO_ADDRESS});
+        
+        await sleep(5000);
+        
+        let claim = await vesting_instance.claim.sendTransaction(
+            {from: TEST_ADDRESS_3}
+        );
+        let vesting_1 = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_3).valueOf();
+        await sleep(5000);
+
+        let cancel = await vesting_instance.cancel.sendTransaction(TEST_ADDRESS_3, {from: DAO_ADDRESS});
+        let vesting_canceled = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_3).valueOf();
+        console.log(vesting_1, vesting_canceled);
+        
 
     });
 
