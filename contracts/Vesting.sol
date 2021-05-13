@@ -34,18 +34,23 @@ contract Vesting is Context, AccessControl {
     mapping( address => VestingSchedule ) public _vestingSchedules;
     CMKToken internal _cmk;
 
+    // Maximum tokens that can be allocated
+    uint internal immutable _maxAllocation;
+
     uint internal _totalAllocation;
     uint internal _totalClaimedAllocation;
+    
 
-    constructor ( address ownerAddress, address cmkAddress ) public {
+    constructor ( address ownerAddress, address cmkAddress, uint maxAllocation ) public {
         _setupRole(OWNER_ROLE, ownerAddress);
         _cmk = CMKToken(cmkAddress);
+        _maxAllocation = maxAllocation;
     }
 
     function addVestingSchedule(address account, uint allocation, uint vestingSeconds, uint cliffSeconds) public onlyOwner {
 
         require(_vestingSchedules[account].account==address(0x0), "ERROR: Vesting already exists" );
-        require(cliffSeconds <= vestingSeconds, "ERROR: Cannot vest longer than cliff");
+        require(cliffSeconds <= vestingSeconds, "ERROR: Cannot cliff longer than vest");
 
         _vestingSchedules[account] = VestingSchedule(
             account, 
@@ -54,8 +59,11 @@ contract Vesting is Context, AccessControl {
             vestingSeconds, 
             cliffSeconds, 
             0);
-        
+        require(_totalAllocation.add(allocation) <= _maxAllocation, "ERROR: Total allocation cannot be greater than the maximum allocation allowed");
         _totalAllocation += allocation;
+
+        
+
         emit VestingScheduleAdded(account, allocation, block.timestamp, vestingSeconds, cliffSeconds);
     }
     
@@ -65,6 +73,8 @@ contract Vesting is Context, AccessControl {
 
     function _claim(address account) internal {
         uint amount = getClaimableAmount(account);
+
+        require(_vestingSchedules[account].claimedAmount.add(amount) <= _vestingSchedules[account].allocation, "ERROR: Cannot claim higher amount than unclaimed amount from total allocation");
 
         _cmk.transfer(account, amount);
 
@@ -133,7 +143,10 @@ contract Vesting is Context, AccessControl {
         if (getRemainingVestingTime(account) == 0){
             return _vestingSchedules[account].allocation;
         }
-        return _vestingSchedules[account].allocation.mul(getElapsedVestingTime(account) ).div(getRemainingVestingTime(account));
+        // return _vestingSchedules[account].allocation.mul(getElapsedVestingTime(account) ).div(getRemainingVestingTime(account));
+
+        // Fraction of elapsed time / total time
+        return _vestingSchedules[account].allocation.mul(getElapsedVestingTime(account) ).div(_vestingSchedules[account].vestingSeconds);
     }
 
     function getUnvestedAmount(address account) public view returns (uint) {
