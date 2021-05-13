@@ -70,12 +70,9 @@ contract Vesting is Context, AccessControl {
     function _claim(address account) internal {
         uint amount = getClaimableAmount(account);
 
-        require(_vestingSchedules[account].claimedAmount.add(amount) <= _vestingSchedules[account].allocation, "ERROR: Cannot claim higher amount than unclaimed amount from total allocation");
-
         _cmk.transfer(account, amount);
-
-        _vestingSchedules[account].claimedAmount += amount;
         
+        _vestingSchedules[account].claimedAmount += amount;
         _totalClaimedAllocation += amount;
 
         emit AllocationClaimed(account, amount, block.timestamp);

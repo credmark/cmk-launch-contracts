@@ -42,16 +42,75 @@ contract("Vesting Test", async accounts => {
         vesting_instance = await Vesting.deployed();
         cmk_instance = await CMKToken.deployed();
         OWNER_ROLE = await vesting_instance.OWNER_ROLE.call().valueOf();
+        
+
+    });
+
+    it("Fails without the available reserves", async () => {
+        let failed = false
+        try{
+            await vesting_instance.addVestingSchedule.sendTransaction(
+                TEST_ADDRESS_1, 
+                TEST_VESTING_1.amount, 
+                TEST_VESTING_1.vesting, 
+                TEST_VESTING_1.cliff, 
+                {from: DAO_ADDRESS});
+            
+        } catch {
+            failed = true;
+        }
+        assert.equal(failed, true);
+    });
+
+    it("Can Recieve CMK", async()=>{
         cmk_instance.transfer.sendTransaction(vesting_instance.address, "46500000000000000000000000", {from: DAO_ADDRESS});
-
+    });
+    it("Fails on no vesting", async () => {
+        let failed = false
+        try{
+            await vesting_instance.addVestingSchedule.sendTransaction(
+                TEST_ADDRESS_1, 
+                TEST_VESTING_1.amount, 
+                0, 
+                0, 
+                {from: DAO_ADDRESS});
+            
+        } catch {
+            failed = true;
+        }
+        assert.equal(failed, true);
+    });
+    it("Fails on cliff longer than vesting", async () => {
+        let failed = false
+        try{
+            await vesting_instance.addVestingSchedule.sendTransaction(
+                TEST_ADDRESS_1, 
+                TEST_VESTING_1.amount, 
+                100, 
+                200, 
+                {from: DAO_ADDRESS});
+            
+        } catch {
+            failed = true;
+        }
+        assert.equal(failed, true);
+    });
+    it("Non-Contract owners cannot make a vesting schedule", async () => {
+        let failed = false
+        try{
+            await vesting_instance.addVestingSchedule.sendTransaction(
+                TEST_ADDRESS_1, 
+                TEST_VESTING_1.amount, 
+                TEST_VESTING_1.vesting, 
+                TEST_VESTING_1.cliff, 
+                {from: TEST_ADDRESS_2});
+            
+        } catch {
+            failed = true;
+        }
+        assert.equal(failed, true);
     });
 
-    it("Creates CMK address Correctly", async () => {
-
-        let cmk_saved_address = await vesting_instance.getCmkTokenAddress.call();
-        assert.equal(cmk_saved_address.valueOf(), cmk_instance.address);
-
-    });
 
     it("DAO address has vesting ownership, others don't", async() => {
 
@@ -172,11 +231,6 @@ contract("Vesting Test", async accounts => {
         let cancel = await vesting_instance.cancel.sendTransaction(TEST_ADDRESS_3, {from: DAO_ADDRESS});
         let vesting_canceled = await vesting_instance.getVestingSchedule.call(TEST_ADDRESS_3).valueOf();
         console.log(vesting_1, vesting_canceled);
-        
-
-    });
-
-    it("Only Owner can add Vesting", async () =>{
 
     });
 });
