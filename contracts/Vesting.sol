@@ -32,22 +32,22 @@ contract Vesting is Context, AccessControl {
     }
 
     mapping( address => VestingSchedule ) public _vestingSchedules;
-    CMKToken internal _cmk;
+    ERC20 internal _token;
 
     uint internal _totalAllocation;
     uint internal _totalClaimedAllocation;
     
 
-    constructor ( address ownerAddress, address cmkAddress ) public {
+    constructor ( address ownerAddress, address cmkAddress ) {
         _setupRole(OWNER_ROLE, ownerAddress);
-        _cmk = CMKToken(cmkAddress);
+        _token = CMKToken(cmkAddress);
     }
 
     function addVestingSchedule(address account, uint allocation, uint vestingSeconds, uint cliffSeconds) public onlyOwner {
 
         require(_vestingSchedules[account].account==address(0x0), "ERROR: Vesting already exists" );
         require(cliffSeconds <= vestingSeconds, "ERROR: Cannot cliff longer than vest");
-        require(_totalAllocation.add(allocation) <= _cmk.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than the maximum allocation allowed");
+        require(_totalAllocation.add(allocation) <= _token.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than the maximum allocation allowed");
         require(vestingSeconds > 0, "ERROR: Vesting Time cannot be 0 seconds");
 
         _totalAllocation += allocation;
@@ -59,7 +59,6 @@ contract Vesting is Context, AccessControl {
             cliffSeconds, 
             0);
 
-
         emit VestingScheduleAdded(account, allocation, block.timestamp, vestingSeconds, cliffSeconds);
     }
     
@@ -70,7 +69,7 @@ contract Vesting is Context, AccessControl {
     function _claim(address account) internal {
         uint amount = getClaimableAmount(account);
 
-        _cmk.transfer(account, amount);
+        _token.transfer(account, amount);
         
         _vestingSchedules[account].claimedAmount += amount;
         _totalClaimedAllocation += amount;
@@ -90,13 +89,11 @@ contract Vesting is Context, AccessControl {
         emit VestingScheduleCanceled(account);
     }
 
-
-
     ///// getters /////
 
-    //// global /////
+    ///// global /////
     function getCmkTokenAddress() public view returns (address) {
-        return address(_cmk);
+        return address(_token);
     }
 
     function getTotalAllocation() public view returns (uint) {
@@ -107,7 +104,7 @@ contract Vesting is Context, AccessControl {
         return _totalClaimedAllocation;
     }
 
-    //// by vesting definition /////
+    ///// by vesting definition /////
 
     function getVestingSchedule(address account) public view returns (VestingSchedule memory) {
         return _vestingSchedules[account];
@@ -137,7 +134,6 @@ contract Vesting is Context, AccessControl {
     }
 
     function getClaimableAmount(address account) public view returns (uint) {
-
         //If we're earlier than the cliff, zero allocation is claimable.
         if(block.timestamp < _vestingSchedules[account].startTimestamp.add(_vestingSchedules[account].cliffSeconds)){
             return 0;
