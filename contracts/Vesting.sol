@@ -36,11 +36,10 @@ contract Vesting is Context, AccessControl {
 
     uint internal _totalAllocation;
     uint internal _totalClaimedAllocation;
-    
 
-    constructor ( address ownerAddress, address cmkAddress ) {
+    constructor ( address ownerAddress, address tokenAddress ) {
         _setupRole(OWNER_ROLE, ownerAddress);
-        _token = CMKToken(cmkAddress);
+        _token = ERC20(tokenAddress);
     }
 
     function addVestingSchedule(address account, uint allocation, uint vestingSeconds, uint cliffSeconds) public onlyOwner {
