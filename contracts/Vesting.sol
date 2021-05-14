@@ -120,11 +120,11 @@ contract Vesting is Context, AccessControl {
     }
 
     function getUnvestedAmount(address account) public view returns (uint) {
-        return  _vestingSchedules[account].allocation.sub(getVestedAmount(account));
+        return _vestingSchedules[account].allocation.sub(getVestedAmount(account));
     }
 
     function getClaimableAmount(address account) public view returns (uint) {
-        //If we're earlier than the cliff, zero allocation is claimable.
+        //If it's earlier than the cliff, zero allocation is claimable.
         if(block.timestamp < _vestingSchedules[account].startTimestamp.add(_vestingSchedules[account].cliffSeconds)){
             return 0;
         }
