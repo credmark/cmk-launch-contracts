@@ -7,16 +7,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./CMKToken.sol";
 
 contract Vesting is Context, AccessControl {
-    using SafeMath for uint;
-    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
-    modifier onlyOwner {
-        require(
-            hasRole(OWNER_ROLE, _msgSender()),
-            "Only owner can call this function."
-        );
-        _;
-    }
+    using SafeMath for uint;
+
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
     event VestingScheduleAdded(address account, uint allocation, uint timestamp, uint vestingSeconds, uint cliffSeconds);
     event VestingScheduleCanceled(address account);
@@ -31,16 +25,18 @@ contract Vesting is Context, AccessControl {
         uint claimedAmount;
     }
 
-    mapping( address => VestingSchedule ) public _vestingSchedules;
-    ERC20 internal _token;
+    mapping( address => VestingSchedule ) private _vestingSchedules;
+    ERC20 private _token;
 
-    uint internal _totalAllocation;
-    uint internal _totalClaimedAllocation;
+    uint private _totalAllocation;
+    uint private _totalClaimedAllocation;
 
     constructor ( address ownerAddress, address tokenAddress ) {
         _setupRole(OWNER_ROLE, ownerAddress);
         _token = ERC20(tokenAddress);
     }
+
+    // FUNCTIONS
 
     function addVestingSchedule(address account, uint allocation, uint vestingSeconds, uint cliffSeconds) public onlyOwner {
 
@@ -65,7 +61,7 @@ contract Vesting is Context, AccessControl {
         return _claim(_msgSender());
     }
 
-    function _claim(address account) internal {
+    function _claim(address account) private {
         uint amount = getClaimableAmount(account);
 
         _token.transfer(account, amount);
@@ -88,7 +84,7 @@ contract Vesting is Context, AccessControl {
         emit VestingScheduleCanceled(account);
     }
 
-    ///// getters /////
+    // GETTERS
 
     ///// global /////
     function getCmkTokenAddress() public view returns (address) {
@@ -104,13 +100,8 @@ contract Vesting is Context, AccessControl {
     }
 
     ///// by vesting definition /////
-
     function getVestingSchedule(address account) public view returns (VestingSchedule memory) {
         return _vestingSchedules[account];
-    }
-
-    function getClaimedAmount(address account) public view returns (uint) {
-        return _vestingSchedules[account].claimedAmount;
     }
 
     function getVestingMaturationTimestamp(address account) public view returns (uint) {
@@ -139,6 +130,16 @@ contract Vesting is Context, AccessControl {
         }
 
         //Claimable amount is the vested, unclaimed amount.
-        return getVestedAmount(account).sub(getClaimedAmount(account));
+        return getVestedAmount(account).sub(_vestingSchedules[account].claimedAmount);
+    }
+
+    // MODIFIERS
+
+    modifier onlyOwner {
+        require(
+            hasRole(OWNER_ROLE, _msgSender()),
+            "Only owner can call this function."
+        );
+        _;
     }
 }

@@ -133,7 +133,6 @@ contract("Vesting Tests", async accounts => {
         let get_unvested_amount = await instance.getUnvestedAmount.call(TEST_ADDRESS_1);
         let get_vested_amount = await instance.getVestedAmount.call(TEST_ADDRESS_1);
         let get_elapsed_time = await instance.getElapsedVestingTime.call(TEST_ADDRESS_1);
-        let get_claimed_amount = await instance.getClaimedAmount.call(TEST_ADDRESS_1);
         let get_claimable_amount = await instance.getClaimableAmount.call(TEST_ADDRESS_1);
 
         assert.equal(get_cmk_token_address.valueOf(), cmk.address);
@@ -144,7 +143,6 @@ contract("Vesting Tests", async accounts => {
         assert.equal(BigInt(get_unvested_amount.valueOf()) > 0, true);
         assert.equal(BigInt(get_vested_amount.valueOf()) == 0, true);
         assert.equal(BigInt(get_elapsed_time.valueOf()) == 0, true);
-        assert.equal(BigInt(get_claimed_amount.valueOf()) == 0, true);
         assert.equal(BigInt(get_claimable_amount.valueOf()) == 0, true);
     });
 
