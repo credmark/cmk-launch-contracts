@@ -1,5 +1,5 @@
 const CMKToken = artifacts.require("CMKToken");
-const Vesting = artifacts.require("Vesting");
+const Vesting = artifacts.require("VestingSchedule");
 
 const TEST_VESTING_1 = {
     vesting: 2000,

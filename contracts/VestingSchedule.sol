@@ -4,9 +4,9 @@ pragma solidity 0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./CMKToken.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract Vesting is Context, AccessControl {
+contract VestingSchedule is Context, AccessControl {
 
     using SafeMath for uint;
 
@@ -16,7 +16,7 @@ contract Vesting is Context, AccessControl {
     event VestingScheduleCanceled(address account);
     event AllocationClaimed(address account, uint amount, uint timestamp);
 
-    struct VestingSchedule {
+    struct VestingScheduleStruct {
         address account;
         uint allocation;
         uint startTimestamp;
@@ -25,7 +25,7 @@ contract Vesting is Context, AccessControl {
         uint claimedAmount;
     }
 
-    mapping( address => VestingSchedule ) private _vestingSchedules;
+    mapping( address => VestingScheduleStruct ) private _vestingSchedules;
     ERC20 private _token;
 
     uint private _totalAllocation;
@@ -40,13 +40,13 @@ contract Vesting is Context, AccessControl {
 
     function addVestingSchedule(address account, uint allocation, uint vestingSeconds, uint cliffSeconds) public onlyOwner {
 
-        require(_vestingSchedules[account].account==address(0x0), "ERROR: Vesting already exists" );
-        require(cliffSeconds <= vestingSeconds, "ERROR: Cannot cliff longer than vest");
-        require(_totalAllocation.add(allocation) <= _token.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than the maximum allocation allowed");
+        require(_vestingSchedules[account].account==address(0x0), "ERROR: Vesting Schedule already exists" );
+        require(cliffSeconds <= vestingSeconds, "ERROR: Cliff longer than Vesting Time");
+        require(_totalAllocation.add(allocation) <= _token.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than reserves");
         require(vestingSeconds > 0, "ERROR: Vesting Time cannot be 0 seconds");
 
         _totalAllocation += allocation;
-        _vestingSchedules[account] = VestingSchedule(
+        _vestingSchedules[account] = VestingScheduleStruct(
             account, 
             allocation, 
             block.timestamp, 
@@ -100,7 +100,7 @@ contract Vesting is Context, AccessControl {
     }
 
     ///// by vesting definition /////
-    function getVestingSchedule(address account) public view returns (VestingSchedule memory) {
+    function getVestingSchedule(address account) public view returns (VestingScheduleStruct memory) {
         return _vestingSchedules[account];
     }
 
