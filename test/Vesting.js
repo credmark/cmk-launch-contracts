@@ -125,7 +125,7 @@ contract("Vesting Tests", async accounts => {
 
     it("Getters Succeed", async () => {
         // GLOBAL
-        let get_cmk_token_address = await instance.getCmkTokenAddress.call();
+        let get_cmk_token_address = await instance.getTokenAddress.call();
         let get_total_allocation = await instance.getTotalAllocation.call();
         let get_total_claimed_allocation = await instance.getTotalClaimedAllocation.call();
 

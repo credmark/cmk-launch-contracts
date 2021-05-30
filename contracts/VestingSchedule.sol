@@ -87,7 +87,7 @@ contract VestingSchedule is Context, AccessControl {
     // GETTERS
 
     ///// global /////
-    function getCmkTokenAddress() public view returns (address) {
+    function getTokenAddress() public view returns (address) {
         return address(_token);
     }
 
