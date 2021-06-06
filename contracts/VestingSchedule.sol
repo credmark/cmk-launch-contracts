@@ -39,7 +39,7 @@ contract VestingSchedule is Context, AccessControl {
 
         require(_vestingSchedules[account].account==address(0x0), "ERROR: Vesting Schedule already exists" );
         require(cliffSeconds <= vestingSeconds, "ERROR: Cliff longer than Vesting Time");
-        require(_totalAllocation + allocation <= _token.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than reserves");
+        require(_totalAllocation - _totalClaimedAllocation + allocation <= _token.balanceOf(address(this)), "ERROR: Total allocation cannot be greater than reserves");
         require(vestingSeconds > 0, "ERROR: Vesting Time cannot be 0 seconds");
 
         _totalAllocation += allocation;
@@ -56,6 +56,10 @@ contract VestingSchedule is Context, AccessControl {
     
     function claim() external  {
         return _claim(_msgSender());
+    }
+
+    function claimFor(address account) external onlyOwner {
+        return _claim(account);
     }
 
     function _claim(address account) private {
@@ -113,6 +117,11 @@ contract VestingSchedule is Context, AccessControl {
     }
 
     function getVestedAmount(address account) public view returns (uint) {
+        //If it's earlier than the cliff, zero allocation is vested.
+        if( block.timestamp < ( _vestingSchedules[account].startTimestamp + _vestingSchedules[account].cliffSeconds ) ){
+            return 0;
+        }
+
         return _vestingSchedules[account].allocation * getElapsedVestingTime(account) / _vestingSchedules[account].vestingSeconds;
     }
 
@@ -121,11 +130,6 @@ contract VestingSchedule is Context, AccessControl {
     }
 
     function getClaimableAmount(address account) public view returns (uint) {
-        //If it's earlier than the cliff, zero allocation is claimable.
-        if(block.timestamp < (_vestingSchedules[account].startTimestamp + _vestingSchedules[account].cliffSeconds ) ){
-            return 0;
-        }
-
         //Claimable amount is the vested, unclaimed amount.
         return getVestedAmount(account) - _vestingSchedules[account].claimedAmount;
     }
