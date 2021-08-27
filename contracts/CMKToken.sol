@@ -1,18 +1,44 @@
-//SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract CMKToken is ERC20, ERC20Permit {
+contract CMKToken is ERC20, ERC20Burnable, ERC20Snapshot, AccessControl, Pausable, ERC20Permit {
+    bytes32 public constant SNAPSHOT_ROLE = keccak256("SNAPSHOT_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    /// @param daoAddress Address that will receive the ownership of the tokens initially
-    constructor ( address daoAddress )
-        ERC20("Credmark", "CMK")
-        ERC20Permit("Credmark")
-        {
-            // Initial supply is 100 million (100e6)
-            // We are using a decimal value of 18
-            _mint(daoAddress, 100e6 ether);
-        }
+    constructor() ERC20("Credmark", "CMK") ERC20Permit("Credmark") {
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(SNAPSHOT_ROLE, msg.sender);
+        _setupRole(PAUSER_ROLE, msg.sender);
+        _mint(msg.sender, 100000000 * 10 ** decimals());
+    }
+
+    function snapshot() public {
+        require(hasRole(SNAPSHOT_ROLE, msg.sender));
+        _snapshot();
+    }
+
+    function pause() public {
+        require(hasRole(PAUSER_ROLE, msg.sender));
+        _pause();
+    }
+
+    function unpause() public {
+        require(hasRole(PAUSER_ROLE, msg.sender));
+        _unpause();
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount)
+        internal
+        whenNotPaused
+        override(ERC20, ERC20Snapshot)
+    {
+        super._beforeTokenTransfer(from, to, amount);
+    }
 }
