@@ -16,6 +16,6 @@
     "dotenv": "^9.0.2"
   },
   "devDependencies": {
-    "solidity-coverage": "^0.8.17"
+    "solidity-coverage": "^0.7.22"
   }
 }
